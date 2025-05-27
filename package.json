@@ -1,0 +1,29 @@
+{
+  "name": "@superhero/audit",
+  "version": "4.0.0",
+  "description": "The superhero audit library is a test-kit repository.",
+  "main": "./src/index.js",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.js",
+    "./assert/contextual": "./src/assert/contextual.js",
+    "./assert": "./src/assert.js",
+    "./reporter": "./src/reporter.js"
+  },
+  "engines": {
+    "node": ">=16.17.0 <17 || >=18.0.0"
+  },
+  "scripts": {
+    "test": "node --trace-warnings --test --experimental-test-coverage",
+    "start": "node bin/index.js"
+  },
+  "author": {
+    "name": "Erik Landvall",
+    "email": "erik@landvall.se"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/superhero/audit"
+  }
+}
