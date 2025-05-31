@@ -115,7 +115,7 @@ export default async function * (source)
                 + (format.columns.size % 2 ? ' ' : '')
                 + String(event.data.counts[metric]).padStart(size.metric).padStart(center)
                 + format.color.reset
-                + (--n ? '\n' + format.tree.top(format.columns.size) + '\n' : '')
+                + (--n ? '\n' + format.color.tree + (`╌`.repeat(format.columns.size)) + '\n' : '')
           }
 
           yield format.color.reset
@@ -206,7 +206,7 @@ export default async function * (source)
             + (coverage[3][0]).padStart(maxFunctionsLength)
             + '\n'
             + format.color.reset
-            + format.tree.top(maxTotalLength) 
+            + format.color.tree + (`╌`.repeat(maxTotalLength))
             + '\n'
 
         for(let i = 1; i < coverage[0].length; i++)
@@ -221,7 +221,7 @@ export default async function * (source)
               + (coverage[3][i] + '%').padStart(maxFunctionsLength)
               + '\n'
               + format.color.reset
-              + format.tree.top(maxTotalLength) 
+              + format.color.tree + (`╌`.repeat(maxTotalLength))
               + '\n'
         }
 
