@@ -336,7 +336,7 @@ const format =
       linePre   = ''.padEnd(center - half, '─'),
       linePost  = ''.padEnd(center - half - (length % 2), '─')
 
-    return '\n' + format.color.reset + format.color.tree + linePre + colored + linePost + '\n\n'
+    return '\n\n' + format.color.reset + format.color.tree + linePre + colored + linePost + '\n\n\n'
   },
   duration(duration)
   {
