@@ -79,7 +79,8 @@ export default async function * (source)
             duration    = format.duration(event.data.details.duration_ms),
             icon        = event.data.details.passed ? '✔' : '✘',
             color       = event.data.details.passed ? format.color.passed : format.color.failed,
-            description = event.data.details.type + ' ' + (event.data.details.passed ? 'passed' : 'failed'),
+            type        = event.data.details.type ? event.data.details.type + ' ' : '',
+            description = type + (event.data.details.passed ? 'passed' : 'failed'),
             output      = `${tree}${color}${icon} ${description} ${duration}${format.color.reset}`
 
           yield output + '\n'
