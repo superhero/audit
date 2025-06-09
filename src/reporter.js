@@ -200,35 +200,53 @@ export default async function * (source)
       // -------------------
       case 'test:coverage':
       {
-        const 
-          coverage = [ [ event.data.summary.files.length === 1 ? 'File' : 'Files'], ['Coverage'], ['Branches'], ['Functions'] ],
-          total    = event.data.summary.totals,
-          cwd      = event.data.summary.workingDirectory
+        const
+          coverage  = [ [ event.data.summary.files.length === 1 ? 'File' : 'Files'], ['Coverage'], ['Functions'], ['Branches'] ],
+          total     = event.data.summary.totals,
+          cwd       = event.data.summary.workingDirectory,
+          uncovered = new Map()
 
         yield format.headline(total.coveredLinePercent > 80 ? '⋅⋆ Coverage ⋆⋅' : 'Coverage', format.columns.size)
 
         for(const file of event.data.summary.files)
         {
-          coverage[0].push(String(file.path).substring(cwd.length + 1))
+          const set = new Set()
+
+          for(let i = 0; i < file.lines.length; i++)
+          {
+            if(file.lines[i].count === 0)
+            {
+              set.add(file.lines[i].line)
+            }
+          }
+
+          let filename = String(file.path).substring(cwd.length + 1)
+
+          if(set.size)
+          {
+            uncovered.set(filename, [ ...set ].map((n, i, a) => n + 1 !== a[i + 1] && a[i + 1] ? `${a[i]}], [${a[i + 1]}` : i === 0 ? `[${a[i]}` : i === a.length - 1 ? `${a[i]}]` : false).filter(Boolean).join('-'))
+          }
+
+          coverage[0].push(filename)
           coverage[1].push(Math.floor(file.coveredLinePercent))
-          coverage[2].push(Math.floor(file.coveredBranchPercent))
-          coverage[3].push(Math.floor(file.coveredFunctionPercent))
+          coverage[2].push(Math.floor(file.coveredFunctionPercent))
+          coverage[3].push(Math.floor(file.coveredBranchPercent))
         }
 
         const
           maxPathLength       = Math.max(...coverage[0].map(txt => txt.length)),
           maxCoverageLength   = Math.max(...coverage[1].map(txt => String(txt).length)) + 3,
-          maxBranchesLength   = Math.max(...coverage[2].map(txt => String(txt).length)) + 3,
-          maxFunctionsLength  = Math.max(...coverage[3].map(txt => String(txt).length)) + 3,
-          totalLength         = maxPathLength + maxCoverageLength + maxBranchesLength + maxFunctionsLength,
+          maxFunctionsLength  = Math.max(...coverage[2].map(txt => String(txt).length)) + 3,
+          maxBranchesLength   = Math.max(...coverage[3].map(txt => String(txt).length)) + 3,
+          totalLength         = maxPathLength + maxCoverageLength + maxFunctionsLength + maxBranchesLength,
           maxTotalLength      = Math.max(totalLength, format.columns.size),
           diffTotalLength     = Math.max(0, maxTotalLength - totalLength)
 
         yield (format.color.tree + format.color.dim)
         yield (coverage[0][0]).padEnd(maxPathLength + diffTotalLength)
             + (coverage[1][0]).padStart(maxCoverageLength)
-            + (coverage[2][0]).padStart(maxBranchesLength)
-            + (coverage[3][0]).padStart(maxFunctionsLength)
+            + (coverage[2][0]).padStart(maxFunctionsLength)
+            + (coverage[3][0]).padStart(maxBranchesLength)
             + '\n'
             + format.color.reset
             + format.color.tree + (`╌`.repeat(maxTotalLength))
@@ -242,8 +260,8 @@ export default async function * (source)
               : (format.color.failed)))
               + (coverage[0][i]).padEnd(maxPathLength + diffTotalLength)
               + (coverage[1][i] + '%').padStart(maxCoverageLength)
-              + (coverage[2][i] + '%').padStart(maxBranchesLength)
-              + (coverage[3][i] + '%').padStart(maxFunctionsLength)
+              + (coverage[2][i] + '%').padStart(maxFunctionsLength)
+              + (coverage[3][i] + '%').padStart(maxBranchesLength)
               + '\n'
               + format.color.reset
               + format.color.tree + (`╌`.repeat(maxTotalLength))
@@ -257,6 +275,33 @@ export default async function * (source)
             + (String(Math.floor(total.coveredFunctionPercent)) + '%').padStart(maxFunctionsLength)
             + '\n'
             + format.color.reset
+
+        yield format.headline('⋅⋆ Uncovered ⋆⋅', format.columns.size)
+
+        for(const [file, lines] of uncovered.entries())
+        {
+          yield format.color.tree + '─ ' + ansi.bold + file + format.color.reset + '\n'
+          
+          const 
+            divided = lines.split(', '),
+            row     = []
+
+          for(let n = 2, i = 0; i < divided.length; i++)
+          {
+            n += divided[i].length + 2
+
+            if(n > format.columns.size)
+            {
+              yield format.color.tree + '  ' + ansi.dim + row.join(', ') + format.color.reset + '\n'
+              row.length = 0
+              n = 2
+            }
+
+            row.push(divided[i])
+          }
+
+          yield format.color.tree + '  ' + ansi.dim + row.join(', ') + format.color.reset + '\n'
+        }
 
         break
       }
