@@ -10,47 +10,62 @@ util.inspect.defaultOptions =
 
 const errors = []
 
+let i = 0, nesting = 0
+
 export default async function * (source)
 {
-  yield format.headline('⋅⋆ Suite ⋆⋅', format.columns.size)
-
   for await (const event of source)
   {
     switch (event.type)
     {
-      // case 'test:dequeue':
       // case 'test:watch:drained':
+      // case 'test:enqueue':
+      // case 'test:start':
       // case 'test:pass':
       // case 'test:fail':
       // case 'test:plan':
       // case 'test:diagnostic':
-      // case 'test:stderr':
-      // case 'test:stdout':
-      // case 'test:dequeue':
-      // case 'test:watch:drained':
-      // case 'test:pass':
-      // case 'test:fail':
-      // case 'test:plan':
-      // case 'test:diagnostic':
+      //   yield event.type + '\n'; break
       // -------------------
       // Standard output....
       // -------------------
-      case 'test:stderr'  : yield format.color.reset + format.color.dim + format.color.failed + event.data.message + format.color.reset; break
-      case 'test:stdout'  : yield format.color.reset + format.color.dim + format.color.stdout + event.data.message + format.color.reset; break
+      case 'test:stdout'  : 
+      {
+        yield format.headline('⋅• ☀ •⋅', format.columns.size)
+        yield format.color.reset + format.color.stdout + event.data.message + format.color.reset
+        break
+      }
+      case 'test:stderr'  :
+      {
+        yield format.headline(format.color.failed + '⋅• ✖ •⋅' + format.color.reset, format.columns.size)
+        yield format.color.reset + format.color.failed + event.data.message + format.color.reset
+        break
+      }
       // ----------------
       // Test started....
       // ----------------
       case 'test:dequeue' :
       {
-        if(event.data.line > 1)
+        if(event.data.line    > 1
+        || event.data.column  > 1)
         {
+          yield format.headline('⋅⋆ Suite ⋆⋅', format.columns.size)
+          
           const
             tree   = event.data.nesting ? format.tree.tee(event.data.nesting - 1) : '',
             output = tree + format.color.title + event.data.name + format.color.reset
 
-          yield output + '\n'
+          if(i++)
+          {
+            yield '\n'
+          }
+
+          // yield tree
+          yield `${output} `
 
           format.columns.expand(output)
+
+          nesting = event.data.nesting
         }
 
         break
@@ -60,18 +75,12 @@ export default async function * (source)
       // ------------------
       case 'test:complete':
       {
-        if(event.data.line > 1)
+        if(event.data.line    > 1
+        || event.data.column  > 1)
         {
-          // dequeued case not triggered on cancelled tests, missing test name if we don't call it here...
-          if('cancelledByParent' === event.data.details.error?.failureType)
+          if(errors.some(error => error.name === event.data.name))
           {
-            const
-              tree   = event.data.nesting ? format.tree.tee(event.data.nesting - 1) : '',
-              output = tree + format.color.title + event.data.name + format.color.reset
-
-            yield output + '\n'
-
-            format.columns.expand(output)
+            break 
           }
 
           const
@@ -83,10 +92,26 @@ export default async function * (source)
             description = type + (event.data.details.passed ? 'passed' : 'failed'),
             output      = `${tree}${color}${icon} ${description} ${duration}${format.color.reset}`
 
-          yield output + '\n'
+          if(nesting !== event.data.nesting)
+          {
+            yield `\n${tree}`
+          }
+
+          yield `${color}${icon} ${duration}${format.color.reset}`
+          // yield output + '\n'
 
           format.columns.expand(output)
-          event.data.details.error && errors.push(event.data)
+          if(event.data.details.error)
+          {
+            errors.push(event.data)
+            yield format.color.tree + ' ─ ' + format.color.dim + format.capitalize(event.data.details.error.cause) + format.color.reset
+          }
+
+          nesting = event.data.nesting
+        }
+        else
+        {
+          yield '\n'
         }
 
         break
@@ -122,7 +147,7 @@ export default async function * (source)
 
           for(const event of errors)
           {
-            yield format.headline(event.name, format.columns.size)
+            yield format.headline(format.color.failed + event.name + format.color.reset, format.columns.size)
                 + format.color.failed + event.file + ':' + event.line + ':' + event.column + '\n'
                 + format.tree.tee(0)  + format.color.failed + '✘' + ' ' + format.capitalize(format.splitCamelCase(event.details.error.failureType).toLowerCase())
 
@@ -243,10 +268,12 @@ export default async function * (source)
 
 const ansi = new class
 {
-  reset  = util.inspect.defaultOptions.colors ? '\x1b[0m' : ''
-  bold   = util.inspect.defaultOptions.colors ? '\x1b[1m' : ''
-  dim    = util.inspect.defaultOptions.colors ? '\x1b[2m' : ''
-  italic = util.inspect.defaultOptions.colors ? '\x1b[3m' : ''
+  reset   = util.inspect.defaultOptions.colors ? '\x1b[0m'  : ''
+  normal  = util.inspect.defaultOptions.colors ? '\x1b[22m' : ''
+  bold    = util.inspect.defaultOptions.colors ? '\x1b[1m'  : ''
+  dim     = util.inspect.defaultOptions.colors ? '\x1b[2m'  : ''
+  italic  = util.inspect.defaultOptions.colors ? '\x1b[3m'  : ''
+  rewrite = util.inspect.defaultOptions.colors ? '\x1b[1A\x1b[2K' : ''
 
   color(hex)
   {
@@ -306,6 +333,7 @@ const format =
   {
     reset     : ansi.reset,
     dim       : ansi.dim,
+    rewrite   : ansi.rewrite,
     stdout    : ansi.color('#83a1a5'),
     started   : ansi.color('#458588'),
     title     : ansi.color('#d79921'),
@@ -325,8 +353,16 @@ const format =
   {
     return txt.replace(/([a-z])([A-Z])/g, '$1 $2')
   },
+  loaded : new Set(),
   headline(title, columns)
   {
+    if(format.loaded.has(title))
+    {
+      return ''
+    }
+
+    format.loaded.add(title)
+
     const
       padded    = ` ${title} `,
       length    = format.columns.count(padded),
@@ -346,11 +382,11 @@ const format =
     }
     else if(duration < 1e3)
     {
-      duration = `${duration}ms`
+      duration = `${duration.toFixed(3)}${ansi.dim}ms${ansi.normal}`
     }
     else if(duration < 60e3)
     {
-      duration = `${Math.floor(duration) / 1e3}s`
+      duration = `${Math.floor(duration) / 1e3}${ansi.dim}s${ansi.normal}`
     }
     else if(duration < 60 * 60e3)
     {
@@ -360,8 +396,8 @@ const format =
         sec = s % 60
 
       duration = sec
-               ? `${min}m ${sec}s`
-               : `${min}m`
+               ? `${min}${ansi.dim}m${ansi.normal} ${sec}${ansi.dim}s${ansi.normal}`
+               : `${min}${ansi.dim}m${ansi.normal}`
     }
     else
     {
@@ -372,20 +408,20 @@ const format =
         sec = s % 60
 
       duration = sec
-               ? `${h}h ${min}m ${sec}s`
+               ? `${h}${ansi.dim}h${ansi.normal} ${min}${ansi.dim}m${ansi.normal} ${sec}${ansi.dim}s${ansi.normal}`
                : min
-               ? `${h}h ${min}m`
-               : `${h}h`
+               ? `${h}${ansi.dim}h${ansi.normal} ${min}${ansi.dim}m${ansi.normal}`
+               : `${h}${ansi.dim}h${ansi.normal}`
     }
 
     return format.color.duration + duration
   },
   tree:
   {
-    top   : (depth) => format.color.tree       + (`─`  .repeat(depth)),
-    left  : (depth) => format.color.tree       + ('│  '.repeat(depth)),
-    tee   : (depth) => format.tree.left(depth) +  '├─ ',
-    hook  : (depth) => format.tree.left(depth) +  '└─ ',
+    top   : (depth) => depth < 0 ? '' : format.color.tree       + (`─`  .repeat(depth)),
+    left  : (depth) => depth < 0 ? '' : format.color.tree       + ('│  '.repeat(depth)),
+    tee   : (depth) => depth < 0 ? '' : format.tree.left(depth) +  '├─ ',
+    hook  : (depth) => depth < 0 ? '' : format.tree.left(depth) +  '└─ ',
   },
   columns :
   {
