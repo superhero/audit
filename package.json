@@ -1,6 +1,6 @@
 {
   "name": "@superhero/audit",
-  "version": "4.7.0",
+  "version": "4.7.1",
   "description": "The superhero audit library is a test-kit repository.",
   "main": "./src/index.js",
   "license": "MIT",

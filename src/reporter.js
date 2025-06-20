@@ -8,7 +8,10 @@ util.inspect.defaultOptions =
   compact         : 3,
 }
 
-const errors = []
+const 
+  errors = [],
+  stdout = [],
+  stderr = []
 
 let i = 0, nesting = 0
 
@@ -31,14 +34,12 @@ export default async function * (source)
       // -------------------
       case 'test:stdout'  : 
       {
-        yield format.headline('⋅• ☀ •⋅', format.columns.size)
-        yield format.color.reset + format.color.stdout + event.data.message + format.color.reset
+        stdout.push(event.data.message)
         break
       }
       case 'test:stderr'  :
       {
-        yield format.headline(format.color.failed + '⋅• ✖ •⋅' + format.color.reset, format.columns.size)
-        yield format.color.reset + format.color.failed + event.data.message + format.color.reset
+        stderr.push(event.data.message)
         break
       }
       // ----------------
@@ -84,27 +85,41 @@ export default async function * (source)
           }
 
           const
-            tree        = format.tree.hook(event.data.nesting),
-            duration    = format.duration(event.data.details.duration_ms),
-            icon        = event.data.details.passed ? '✔' : '✘',
-            color       = event.data.details.passed ? format.color.passed : format.color.failed,
-            type        = event.data.details.type ? event.data.details.type + ' ' : '',
-            description = type + (event.data.details.passed ? 'passed' : 'failed'),
-            output      = `${tree}${color}${icon} ${description} ${duration}${format.color.reset}`
+            tree      = format.tree.hook(event.data.nesting),
+            duration  = format.duration(event.data.details.duration_ms),
+            icon      = event.data.details.passed ? '✔' : '✘',
+            color     = event.data.details.passed ? format.color.passed : format.color.failed,
+            output    = `${color}${icon} ${duration}${format.color.reset}`
 
           if(nesting !== event.data.nesting)
           {
             yield `\n${tree}`
           }
 
-          yield `${color}${icon} ${duration}${format.color.reset}`
-          // yield output + '\n'
+          yield output
 
-          format.columns.expand(output)
+          format.columns.expand(`\n${tree}${output}`)
           if(event.data.details.error)
           {
             errors.push(event.data)
-            yield format.color.tree + ' ─ ' + format.color.dim + format.capitalize(event.data.details.error.cause) + format.color.reset
+
+            const
+              indentation     = ' '.repeat((nesting - event.data.nesting) * 3),
+              addIndentation  = tree => 
+              {
+                const parts = tree.split(' ')
+                parts[parts.length - 2] = indentation + parts[parts.length - 2]
+                return parts.join(' ')
+              },
+              tee             = addIndentation(format.tree.tee(event.data.nesting)),
+              hook            = addIndentation(format.tree.hook(event.data.nesting)),
+              causes          = String(event.data.details.error.cause).split('\n'),
+              formatted       = causes.map(format.capitalize).map(line => format.color.dim + line + format.color.reset),
+              lastCause       = formatted.pop(),
+              mapped          = formatted.map(line => tee + line),
+              cause           = [ ...mapped, hook + lastCause ].join('\n')
+
+            yield `\n${cause}`
           }
 
           nesting = event.data.nesting
@@ -301,6 +316,26 @@ export default async function * (source)
           }
 
           yield format.color.tree + '  ' + ansi.dim + row.join(', ') + format.color.reset + '\n'
+        }
+
+        if(stdout.length)
+        {
+          // Output any standard output...
+          yield format.headline('⋅• ☀ •⋅', format.columns.size)
+          for(const line of stdout)
+          {
+            yield format.color.reset + line + format.color.reset
+          }
+        }
+
+        if(stderr.length)
+        {
+          // Output any standard error...
+          yield format.headline(format.color.failed + '⋅• ✖ •⋅' + format.color.reset, format.columns.size)
+          for(const line of stderr)
+          {
+            yield format.color.reset + line + format.color.reset
+          }
         }
 
         break
