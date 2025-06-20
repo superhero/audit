@@ -104,7 +104,7 @@ export default async function * (source)
             errors.push(event.data)
 
             const
-              indentation     = ' '.repeat((nesting - event.data.nesting) * 3),
+              indentation     = ' '.repeat(Math.max(0, (nesting - event.data.nesting) * 3)),
               addIndentation  = tree => 
               {
                 const parts = tree.split(' ')
@@ -427,7 +427,7 @@ const format =
   capitalize(txt)
   {
     txt = String(txt)
-    return txt[0].toUpperCase() + txt.slice(1)
+    return txt.length ? txt[0].toUpperCase() + txt.slice(1) : ''
   },
   splitCamelCase(txt)
   {
