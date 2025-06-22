@@ -291,11 +291,11 @@ export default async function * (source)
             + '\n'
             + format.color.reset
 
-        yield format.headline('⋅⋆ Uncovered ⋆⋅', format.columns.size)
+        const collection = []
 
         for(const [file, lines] of uncovered.entries())
         {
-          yield format.color.tree + '─ ' + ansi.bold + file + format.color.reset + '\n'
+          collection.push(format.color.tree + '─ ' + ansi.bold + file + format.color.reset)
           
           const 
             divided = lines.split(', '),
@@ -307,7 +307,7 @@ export default async function * (source)
 
             if(n > format.columns.size)
             {
-              yield format.color.tree + '  ' + ansi.dim + row.join(', ') + format.color.reset + '\n'
+              collection.push(format.color.tree + '  ' + ansi.dim + row.join(', ') + format.color.reset)
               row.length = 0
               n = 2
             }
@@ -315,7 +315,13 @@ export default async function * (source)
             row.push(divided[i])
           }
 
-          yield format.color.tree + '  ' + ansi.dim + row.join(', ') + format.color.reset + '\n'
+          collection.push(format.color.tree + '  ' + ansi.dim + row.join(', ') + format.color.reset)
+        }
+
+        if(collection.length)
+        {
+          yield format.headline('⋅⋆ Uncovered ⋆⋅', format.columns.size)
+          yield collection.join('\n')
         }
 
         if(stdout.length)
