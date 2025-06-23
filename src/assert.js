@@ -1,12 +1,123 @@
 import assert from 'node:assert'
+import OAS    from '@superhero/oas'
 
 export default
 {
   ...assert,
-  
-  instanceof(value, instance, message)
+
+  oasHeader(specification, component, header, message)
   {
-    if(value instanceof instance)
+    try
+    {
+      new OAS(specification).headers.conform(component, header)
+    }
+    catch(reason)
+    {
+      const error = new assert.AssertionError(
+      {
+        message  : message,
+        actual   : header,
+        expected : component,
+        operator : 'oasHeader'
+      })
+  
+      error.code  = 'E_ASSERTION_OAS_HEADER'
+      error.cause = reason
+      throw error
+    }
+  },
+
+  oasParameter(specification, component, parameter, message)
+  {
+    try
+    {
+      new OAS(specification).parameters.conform(component, parameter)
+    }
+    catch(reason)
+    {
+      const error = new assert.AssertionError(
+      {
+        message  : message,
+        actual   : parameter,
+        expected : component,
+        operator : 'oasParameter'
+      })
+
+      error.code  = 'E_ASSERTION_OAS_PARAMETER'
+      error.cause = reason
+      throw error
+    }
+  },
+
+  oasRequestBody(specification, component, requestBody, message)
+  {
+    try
+    {
+      new OAS(specification).requestBodies.conform(component, requestBody)
+    }
+    catch(reason)
+    {
+      const error = new assert.AssertionError(
+      {
+        message  : message,
+        actual   : requestBody,
+        expected : component,
+        operator : 'oasRequestBody'
+      })
+
+      error.code  = 'E_ASSERTION_OAS_REQUEST_BODY'
+      error.cause = reason
+      throw error
+    }
+  },
+
+  oasResponse(specification, component, instance, message)
+  {
+    try
+    {
+      new OAS(specification).responses.conform(component, instance)
+    }
+    catch(reason)
+    {
+      const error = new assert.AssertionError(
+      {
+        message  : message,
+        actual   : instance,
+        expected : component,
+        operator : 'oasResponse'
+      })
+
+      error.code  = 'E_ASSERTION_OAS_RESPONSE'
+      error.cause = reason
+      throw error
+    }
+  },
+
+  oasSchema(specification, component, instance, message)
+  {
+    try
+    {
+      new OAS(specification).schemas.conform(component, instance)
+    }
+    catch(reason)
+    {
+      const error = new assert.AssertionError(
+      {
+        message  : message,
+        actual   : instance,
+        expected : component,
+        operator : 'oasSchema'
+      })
+
+      error.code  = 'E_ASSERTION_OAS_SCHEMA'
+      error.cause = reason
+      throw error
+    }
+  },
+  
+  instanceof(value, type, message)
+  {
+    if(value instanceof type)
     {
       return true
     }
@@ -15,7 +126,7 @@ export default
     {
       message  : message,
       actual   : Object.prototype.toString.call(value),
-      expected : Object.prototype.toString.call(instance),
+      expected : Object.prototype.toString.call(type),
       operator : 'instanceof',
     })
 

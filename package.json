@@ -5,6 +5,9 @@
   "main": "./src/index.js",
   "license": "MIT",
   "type": "module",
+  "bin": {
+    "syntax-check": "./bin/syntax-check"
+  },
   "exports": {
     ".": "./src/index.js",
     "./assert/contextual": "./src/assert/contextual.js",
@@ -18,7 +21,9 @@
     "test": "node --trace-warnings --test --experimental-test-coverage",
     "start": "node bin/index.js"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@superhero/oas": "4.7.4"
+  },
   "devDependencies": {},
   "author": {
     "name": "Erik Landvall",
