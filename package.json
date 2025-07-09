@@ -6,7 +6,7 @@
   "license": "MIT",
   "type": "module",
   "bin": {
-    "syntax-check": "./bin/syntax-check"
+    "syntax-check": "bin/syntax-check"
   },
   "exports": {
     ".": "./src/index.js",
