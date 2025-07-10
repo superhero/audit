@@ -15,7 +15,7 @@
     "./reporter": "./src/reporter.js"
   },
   "engines": {
-    "node": ">=16.17.0 <17 || >=18.0.0"
+    "node": ">=16.17.0 <17 || >=18"
   },
   "scripts": {
     "test": "node --trace-warnings --test --experimental-test-coverage",
