@@ -1,6 +1,6 @@
 {
   "name": "@superhero/audit",
-  "version": "4.7.7",
+  "version": "4.7.8",
   "description": "The superhero audit library is a test-kit repository.",
   "main": "./src/index.js",
   "license": "MIT",
@@ -22,7 +22,7 @@
     "start": "node bin/index.js"
   },
   "dependencies": {
-    "@superhero/oas": "4.7.7"
+    "@superhero/oas": "4.7.8"
   },
   "devDependencies": {},
   "author": {
